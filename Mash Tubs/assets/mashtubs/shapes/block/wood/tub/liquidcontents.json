@@ -1,0 +1,188 @@
+{
+	"editor": {
+		"allAngles": false,
+		"entityTextureMode": false
+	},
+	"textureWidth": 32,
+	"textureHeight": 32,
+	"textureSizes": {
+		"raw-onion": [32,32]
+	},
+	"textures": {
+		"raw-onion": "game:block/wood/barrel/raw-onion"
+	},
+	"elements": [
+		{
+			"name": "top",
+			"from": [ 0.0, 0.0, 0.0 ],
+			"to": [ 0.0, 0.0, 0.0 ],
+			"renderPass": 4,
+			"faces": {},
+			"children": [
+				{
+					"name": "food2",
+					"from": [ 26.85, 1.0, -0.35 ],
+					"to": [ 27.85, 2.0, 11.85 ],
+					"renderPass": 4,
+					"faces": {
+						"up": {
+							"texture": "#raw-onion",
+							"uv": [ 26.0, 15.0, 27.0, 27.2 ]
+						}
+					}
+				},
+				{
+					"name": "food3",
+					"from": [ 26.85, 1.0, -11.85 ],
+					"renderPass": 4,
+					"to": [ 27.85, 2.0, -0.35 ],
+					"faces": {
+						"up": {
+							"texture": "#raw-onion",
+							"uv": [ 26.0, 3.5, 27.0, 15.0 ]
+						}
+					}
+				},
+				{
+					"name": "food4",
+					"from": [ 27.85, 1.0, -10.85 ],
+					"to": [ 28.35, 2.0, -0.35 ],
+					"renderPass": 4,
+					"faces": {
+						"up": {
+							"texture": "#raw-onion",
+							"uv": [ 27.0, 4.5, 27.5, 15.0 ]
+						}
+					}
+				},
+				{
+					"name": "food4",
+					"from": [ 27.85, 1.0, -0.35 ],
+					"to": [ 28.35, 2.0, 10.85 ],
+					"renderPass": 4,
+					"faces": {
+						"up": {
+							"texture": "#raw-onion",
+							"uv": [ 27.0, 15.0, 27.5, 26.2 ]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "center",
+			"from": [ 0.0, 0.0, 0.0 ],
+			"to": [ 0.0, 0.0, 0.0 ],
+			"renderPass": 4,
+			"faces": {
+			},
+			"children": [
+				{
+					"name": "centerNE",
+					"from": [ 15.85, 1.0, -12.35 ],
+					"to": [ 26.85, 2.0, -0.35 ],
+					"renderPass": 4,
+					"faces": {
+						"up": {
+							"texture": "#raw-onion",
+							"uv": [ 15.0, 3.0, 26.0, 15.0 ]
+						}
+					}
+				},
+				{
+					"name": "centerNW",
+					"from": [ 5.15, 1.0, -12.35 ],
+					"to": [ 15.85, 2.0, -0.35 ],
+					"renderPass": 4,
+					"faces": {
+						"up": {
+							"texture": "#raw-onion",
+							"uv": [ 4.25, 3.0, 14.95, 15.0 ]
+						}
+					}
+				},
+				{
+					"name": "centerSE",
+					"from": [ 15.85, 1.0, -0.35 ],
+					"to": [ 26.85, 2.0, 12.35 ],
+					"renderPass": 4,
+					"faces": {
+						"up": {
+							"texture": "#raw-onion",
+							"uv": [ 15.0, 15.0, 26.0, 27.7 ]
+						}
+					}
+				},
+				{
+					"name": "centerSW",
+					"from": [ 5.15, 1.0, -0.35 ],
+					"to": [ 15.85, 2.0, 12.35 ],
+					"renderPass": 4,
+					"faces": {
+						"up": {
+							"texture": "#raw-onion",
+							"uv": [ 4.25, 15.0, 14.95, 27.7 ]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "lower",
+			"from": [ 0.0, 0.0, 0.0 ],
+			"to": [ 0.0, 0.0, 0.0 ],
+			"renderPass": 4,
+			"faces": {
+			},
+			"children": [
+				{
+					"name": "lower1",
+					"from": [ 4.15, 1.0, -11.85 ],
+					"to": [ 5.15, 2.0, -0.35 ],
+					"renderPass": 4,
+					"faces": {
+						"up": {
+							"texture": "#raw-onion",
+							"uv": [ 3.25, 3.5, 4.25, 15.0 ]
+						}
+					}
+				},
+				{
+					"name": "lower2",
+					"from": [ 3.65, 1.0, -0.35 ],
+					"to": [ 4.15, 2.0, 10.85 ],
+					"renderPass": 4,
+					"faces": {
+						"up": {
+							"texture": "#raw-onion",
+							"uv": [ 2.75, 15.0, 3.25, 26.2 ]
+						}
+					}
+				},
+				{
+					"name": "lower3",
+					"from": [ 4.15, 1.0, -0.35 ],
+					"to": [ 5.15, 2.0, 11.85 ],
+					"renderPass": 4,
+					"faces": {
+						"up": {
+							"texture": "#raw-onion",
+							"uv": [ 3.5, 15.0, 4.5, 27.0 ]
+						}
+					}
+				},
+				{
+					"name": "lower4",
+					"from": [ 3.65, 1.0, -10.85 ],
+					"to": [ 4.15, 2.0, -0.35 ],
+					"renderPass": 4,
+					"faces": {
+						"up": {
+							"texture": "#raw-onion",
+							"uv": [ 2.75, 4.5, 3.25, 15.0 ]
+						}
+					}
+				}
+			]
+		}
+	]}
