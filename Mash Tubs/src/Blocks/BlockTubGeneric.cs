@@ -17,10 +17,11 @@ using Vintagestory.Client.NoObf;
 using Vintagestory.GameContent;
 using Vintagestory.ServerMods;
 using Vintagestory.ServerMods.NoObf;
+using static System.Reflection.Metadata.BlobBuilder;
 
 namespace Mash_Tubs.src.Blocks
 {
-    internal class BlockTubGeneric : BlockLiquidContainerBase, IMultiBlockColSelBoxes
+    internal class BlockTubGeneric : BlockLiquidContainerBase, IMultiBlockColSelBoxes, IMultiBlockCollisions
     {
         public override bool AllowHeldLiquidTransfer => false;
 
@@ -31,17 +32,12 @@ namespace Mash_Tubs.src.Blocks
         public AssetLocation opaqueLiquidContentsShape { get; protected set; } = AssetLocation.Create("block/wood/tub/opaqueliquidcontents", "mashtubs");
 
         public AssetLocation liquidContentsShape { get; protected set; } = AssetLocation.Create("block/wood/tub/liquidcontents", "mashtubs");
-
+        #region MBselection
         public override bool DoParticalSelection(IWorldAccessor world, BlockPos pos)
         {
             return false;
         }
 
-        public override void OnBlockPlaced(IWorldAccessor world, BlockPos blockPos, ItemStack byItemStack = null)
-        {
-            base.OnBlockPlaced(world, blockPos, byItemStack);
-
-        }
         public ValuesByMultiblockOffset ValuesByMultiblockOffset { get; set; } = new();
 
         Cuboidf[] IMultiBlockColSelBoxes.MBGetCollisionBoxes(IBlockAccessor blockAccessor, BlockPos pos, Vec3i offset)
@@ -63,38 +59,25 @@ namespace Mash_Tubs.src.Blocks
             Block originaBlock = blockAccessor.GetBlock(pos.AddCopy(offset.X, offset.Y, offset.Z));
             return this.GetSelectionBoxes(blockAccessor, pos);
         }
-        /*
-        public Cuboidf[] MBGetCollisionBoxes(IBlockAccessor blockAccessor, BlockPos pos, Vec3i offset)
+
+        bool IMultiBlockCollisions.MBCanAcceptFallOnto(IWorldAccessor world, BlockPos pos, Block fallingBlock, TreeAttribute blockEntityAttributes, Vec3i offsetInv)
         {
-            if (rotatedColSelBoxes == null) {
-                SetRotatedColSelBox(blockAccessor, pos,offset);
-            }
-            return rotatedColSelBoxes;
+            return base.CanAcceptFallOnto(world, pos, fallingBlock, blockEntityAttributes);
         }
-        
-        public Cuboidf[] MBGetSelectionBoxes(IBlockAccessor blockAccessor, BlockPos pos, Vec3i offset)
+        bool IMultiBlockCollisions.MBOnFallOnto(IWorldAccessor world, BlockPos pos, Block block, TreeAttribute blockEntityAttributes, Vec3i offsetInv)
         {
-            if (rotatedColSelBoxes == null)
-            {
-                SetRotatedColSelBox(blockAccessor, pos, offset);
-            }
-            return rotatedColSelBoxes;
+            return base.OnFallOnto(world, pos, block, blockEntityAttributes);
         }
-        public void SetRotatedColSelBox(IBlockAccessor blockAccessor, BlockPos pos, Vec3i offset) {
-            float rotationY = 0f;
-            if (blockAccessor.GetBlock(pos) is BlockMultiblock blockMultiBlockElement)
-            {
-                rotatedColSelBoxes = blockAccessor.GetBlock(pos.AddCopy(offset)).SelectionBoxes.Select(r => r.RotatedCopy(0f, (blockMultiBlockElement.GetRotatedBlockCode((int)blockAccessor.GetBlock(pos.AddCopy(offset)).Shape.rotateY).CodePartsAfterSecond()) switch
-                {
-                    "p1-0-0" => 90f,
-                    "p1-0-n1" => 180f,
-                    "0-0-n1" => 270f,
-                    _ => 0f
-                }, 0f, new Vec3d(0.5, 0.5, 0.5))).ToArray();
-            }
-            
+        void IMultiBlockCollisions.MBOnEntityInside(IWorldAccessor world, Entity entity, BlockPos pos, Vec3i offsetInv)
+        {
+            base.OnEntityInside(world, entity, pos);
         }
-        */
+        void IMultiBlockCollisions.MBOnEntityCollide(IWorldAccessor world, Entity entity, BlockPos pos, BlockFacing facing, Vec3d collideSpeed, bool isImpact, Vec3i offsetInv)
+        {
+            OnEntityCollide(world, entity, pos.AddCopy(offsetInv), facing, collideSpeed, isImpact);
+        }
+        #endregion MBselection
+
         public override int GetContainerSlotId(BlockPos pos)
         {
             return 1;
@@ -196,39 +179,36 @@ namespace Mash_Tubs.src.Blocks
         {
             return base.TryPutLiquid(containerStack, liquidStack, desiredLitres);
         }
+        
         public override void OnHeldInteractStart(ItemSlot itemslot, EntityAgent byEntity, BlockSelection blockSel, EntitySelection entitySel, bool firstEvent, ref EnumHandHandling handHandling)
         {
             base.OnHeldInteractStart(itemslot, byEntity, blockSel, entitySel, firstEvent, ref handHandling);
         }
-
+        
         public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
         {
             if (blockSel != null && !world.Claims.TryAccess(byPlayer, blockSel.Position, EnumBlockAccessFlags.Use))
             {
                 return false;
             }
-
+            
             BlockEntityMashTub blockEntityTub = null;
             if (blockSel.Position != null)
             {
                 blockEntityTub = world.BlockAccessor.GetBlockEntity(blockSel.Position) as BlockEntityMashTub;
             }
-
-            if (blockEntityTub != null && blockEntityTub.Mashing)
-            {
-                return true;
+            if (blockEntityTub != null) {
+                if (blockEntityTub.Mashing) 
+                { 
+                    return true;
+                }
+                if (blockEntityTub.HeldItemHasPropsOrEmpty(byPlayer) && blockSel.Position != null)
+                {
+                        blockEntityTub?.ItemInventoryInteract(byPlayer, blockSel);
+                        return true;
+                }
             }
-
-            bool flag = base.OnBlockInteractStart(world, byPlayer, blockSel);
-            api.Logger.Event(flag.ToString()+"at"+blockSel);
-            if (!flag && blockSel.Position != null)
-            {
-                blockEntityTub?.ItemInventoryInteract(byPlayer,blockSel);
-                api.Logger.Event("iteminventoryinteract");
-                return true;
-            }
-
-            return flag;
+            return base.OnBlockInteractStart(world, byPlayer, blockSel);
         }
 
         public override string GetPlacedBlockInfo(IWorldAccessor world, BlockPos pos, IPlayer forPlayer)
@@ -272,8 +252,7 @@ namespace Mash_Tubs.src.Blocks
             ICoreClientAPI obj = api as ICoreClientAPI;
             Shape shape = Vintagestory.API.Common.Shape.TryGet(obj,emptyShape);
             obj.Tesselator.TesselateShape(this, shape, out var modeldata,this.Shape.RotateXYZCopy??new Vec3f(0,0,0));
-            if (!issealed)
-            {
+            
                 JsonObject containerProps = liquidContentStack?.ItemAttributes?["waterTightContainerProps"];
                 MeshData meshData = getContentMeshFromAttributes(contentStack, liquidContentStack, forBlockPos) ?? getContentMesh(contentStack, forBlockPos, contentsShape);
                 MeshData meshData2 = getContentMeshFromAttributes(contentStack, liquidContentStack, forBlockPos) ?? getContentMeshLiquids(contentStack, liquidContentStack, forBlockPos, containerProps);
@@ -292,7 +271,7 @@ namespace Mash_Tubs.src.Blocks
                     modeldata.CustomFloats = new CustomMeshDataPartFloat(modeldata.FlagsCount * 2);
                     modeldata.CustomFloats.Count = modeldata.FlagsCount * 2;
                 }
-            }
+            
 
             return modeldata;
         }
@@ -477,21 +456,12 @@ namespace Mash_Tubs.src.Blocks
                 };
             });
         }
-
+        
         public override void OnEntityCollide(IWorldAccessor world, Entity entity, BlockPos pos, BlockFacing facing, Vec3d collideSpeed, bool isImpact)
         {
-            api.Logger.Event("collidespeed" + collideSpeed.Y);
-            api.Logger.Event("facing" + facing);
-            api.Logger.Event("isimpact" + isImpact);
-            api.Logger.Event("pos is" + pos);
-            world.BlockAccessor.GetBlock(pos).CollisionBoxes[0];
-            entity.ClimbingOnCollBox.
-            //api.Logger.Event(isImpact +" : "+ facing.IsVertical + " : " +( (entity.Pos.Y - pos.Y) < 0.1) + " : " + (collideSpeed.Y < -0.05));
             if (world.BlockAccessor.GetBlockEntity(pos) is BlockEntityMashTub blockEntityMashTub) {
-                api.Logger.Event("collidespeed" + collideSpeed.Y);
-                if (isImpact && facing.IsVertical && (entity.Pos.Y - pos.Y) < 0.1)
+                if (isImpact && facing.IsVertical && collideSpeed.Y < -0.2 && (entity.Pos.Y - pos.Y) < 0.1)
                 {
-                    api.Logger.Event("stomp");
                     blockEntityMashTub.OnEntityStomp(world.Api,entity);
                 }
             }

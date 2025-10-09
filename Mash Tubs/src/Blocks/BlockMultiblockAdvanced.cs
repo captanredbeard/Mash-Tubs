@@ -75,11 +75,11 @@ namespace Mash_Tubs.src.Blocks
         }
         public override bool OnFallOnto(IWorldAccessor world, BlockPos pos, Block block, TreeAttribute blockEntityAttributes)
         {
-            return Handle(world.BlockAccessor, pos.X + OffsetInv.X, pos.InternalY + OffsetInv.Y, pos.Z + OffsetInv.Z, (IMultiBlockCollisions inf) => inf.MBOnFallOnto(world, pos, block, blockEntityAttributes, OffsetInv), (Block nblock) => base.OnFallOnto(world, pos, block, blockEntityAttributes), (Block nblock) => nblock.OnFallOnto(world, pos,block,blockEntityAttributes));
+            return Handle(world.BlockAccessor, pos.X + OffsetInv.X, pos.InternalY + OffsetInv.Y, pos.Z + OffsetInv.Z, (IMultiBlockFallOnto inf) => inf.MBOnFallOnto(world, pos, block, blockEntityAttributes, OffsetInv), (Block nblock) => base.OnFallOnto(world, pos, block, blockEntityAttributes), (Block nblock) => nblock.OnFallOnto(world, pos,block,blockEntityAttributes));
         }
         public override bool CanAcceptFallOnto(IWorldAccessor world, BlockPos pos, Block fallingBlock, TreeAttribute blockEntityAttributes)
         {
-            return Handle(world.BlockAccessor, pos.X + OffsetInv.X, pos.InternalY + OffsetInv.Y, pos.Z + OffsetInv.Z, (IMultiBlockCollisions inf) => inf.MBCanAcceptFallOnto(world, pos, fallingBlock, blockEntityAttributes, OffsetInv), (Block block) => base.CanAcceptFallOnto(world, pos, fallingBlock, blockEntityAttributes), (Block block) => block.CanAcceptFallOnto(world, pos, fallingBlock, blockEntityAttributes));
+            return Handle(world.BlockAccessor, pos.X + OffsetInv.X, pos.InternalY + OffsetInv.Y, pos.Z + OffsetInv.Z, (IMultiBlockFallOnto inf) => inf.MBCanAcceptFallOnto(world, pos, fallingBlock, blockEntityAttributes, OffsetInv), (Block block) => base.CanAcceptFallOnto(world, pos, fallingBlock, blockEntityAttributes), (Block block) => block.CanAcceptFallOnto(world, pos, fallingBlock, blockEntityAttributes));
         }
     }
 }

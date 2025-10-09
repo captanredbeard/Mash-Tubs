@@ -9,7 +9,7 @@
 		"flax": [32,32]
 	},
 	"textures": {
-		"flax": "block/food/grain/flax"
+		"flax": "game:block/food/grain/flax"
 	},
 	"elements": [
 		{

@@ -1,10 +1,12 @@
-﻿using Mash_Tubs.src.Behaviors;
+﻿using HarmonyLib;
+using Mash_Tubs.src.Behaviors;
 using Mash_Tubs.src.Blocks;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.Server;
 using Vintagestory.Client.NoObf;
+using Vintagestory.GameContent;
 
 namespace Mash_Tubs
 {
@@ -20,16 +22,6 @@ namespace Mash_Tubs
 
             api.RegisterBlockClass(ModID + ":BlockTubGeneric", typeof(src.Blocks.BlockTubGeneric));
             api.RegisterBlockEntityClass(ModID + ":BlockEntityTreadingTub", typeof(src.Blocks.BlockEntityMashTub));
-        }
-
-        public override void StartServerSide(ICoreServerAPI api)
-        {
-            Mod.Logger.Notification("Hello from template mod server side: " + Lang.Get("mash tubs:hello"));
-        }
-
-        public override void StartClientSide(ICoreClientAPI api)
-        {
-            Mod.Logger.Notification("Hello from template mod client side: " + Lang.Get("mash tubs:hello"));
         }
     }
 }
