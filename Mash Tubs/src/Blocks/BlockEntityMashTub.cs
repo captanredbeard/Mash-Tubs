@@ -255,12 +255,13 @@ namespace Mash_Tubs.src.Blocks
             double totalHours = Api.World.Calendar.TotalHours;
             double num = mashStack.Attributes.GetDouble("squeezeRel", 1.0);
             double amountToRemove = 0.0;
-            if (num > tubSqueezeRel)
+            if (num > tubSqueezeRel && false)
             {
 
                 num = GameMath.Clamp(Math.Min(mashStack.Attributes.GetDouble("squeezeRel", 1.0), num), 0.0, 1.0);
                 mashStack.Attributes.SetDouble("squeezeRel", num);
-                mashPercent = MashingVolume/num;
+                mashPercent = num;
+                //MashingVolume /
 
             }
             if (Api.Side == EnumAppSide.Server && Mashing && num < 1.0 && tubSqueezeRel <= num && juiceableLitresLeft > 0.0)
@@ -334,6 +335,9 @@ namespace Mash_Tubs.src.Blocks
                 MashingVolume = (float)(juiceableLitresLeft + juiceableLitresTransfered) / CapacityLitres;
                 tubSqueezeRel = num;
                 Api.Logger.Event("new tubSqueezeRel :" + tubSqueezeRel);
+                num = GameMath.Clamp(Math.Min(mashStack.Attributes.GetDouble("squeezeRel", 1.0), num), 0.0, 1.0);
+                mashStack.Attributes.SetDouble("squeezeRel", num);
+                mashPercent = num;
             }
         }
 
@@ -664,6 +668,39 @@ namespace Mash_Tubs.src.Blocks
             }
 
             dsc.AppendLine(Lang.Get("{0}x {1}", num, text2));
+
+            /*
+             base.GetBlockInfo(forPlayer, dsc);
+        if (!BucketSlot.Empty && BucketSlot.Itemstack.Collectible is BlockLiquidContainerBase blockLiquidContainerBase)
+        {
+            dsc.Append(Lang.Get("Container:") + " ");
+            blockLiquidContainerBase.GetContentInfo(BucketSlot, dsc, Api.World);
+            dsc.AppendLine();
+        }
+
+        if (MashSlot.Empty)
+        {
+            return;
+        }
+
+        JuiceableProperties juiceableProps = getJuiceableProps(mashStack);
+        if (juiceableLitresLeft >= 0.01 && mashStack.Collectible.Code.Path != "rot")
+        {
+            string text = juiceableProps.LiquidStack.ResolvedItemstack.GetName().ToLowerInvariant();
+            dsc.AppendLine(Lang.GetWithFallback("fruitpress-litreswhensqueezed", "Mash produces {0:0.##} litres of juice when squeezed", juiceableLitresLeft, text));
+            return;
+        }
+
+        int num = ((mashStack.Collectible.Code.Path != "rot") ? dryStackSize : MashSlot.StackSize);
+        string text2 = MashSlot.GetStackName().ToLowerInvariant();
+        if (juiceableProps?.ReturnStack?.ResolvedItemstack != null)
+        {
+            num = (int)((double)juiceableProps.ReturnStack.ResolvedItemstack.StackSize * Math.Round(juiceableLitresTransfered, 2, MidpointRounding.AwayFromZero));
+            text2 = juiceableProps.ReturnStack.ResolvedItemstack.GetName().ToLowerInvariant();
+        }
+
+        dsc.AppendLine(Lang.Get("{0}x {1}", num, text2));
+             */
         }
 
     }

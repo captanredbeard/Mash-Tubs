@@ -213,35 +213,7 @@ namespace Mash_Tubs.src.Blocks
 
         public override string GetPlacedBlockInfo(IWorldAccessor world, BlockPos pos, IPlayer forPlayer)
         {
-            StringBuilder StringBuilder = new StringBuilder();
-            string text = base.GetPlacedBlockInfo(world, pos, forPlayer);
-            string text2 = "";
-            int num = text.IndexOfOrdinal(Environment.NewLine + Environment.NewLine);
-            if (num > 0)
-            {
-                text2 = text.Substring(num);
-                text = text.Substring(0, num);
-            }
-
-            if (GetCurrentLitres(pos) <= 0f)
-            {
-                text = "";
-            }
-
-            if (world.BlockAccessor.GetBlockEntity(pos) is BlockEntityMashTub blockEntityTub)
-            {
-                ItemSlot itemSlot = blockEntityTub.Inventory[0];
-                if (!itemSlot.Empty)
-                {
-                    text = ((text.Length <= 0) ? (text + Lang.Get("Contents:") + "\n ") : (text + " "));
-                    text += Lang.Get("{0}x {1}", itemSlot.Itemstack.StackSize, itemSlot.Itemstack.GetName());
-                    text += BlockLiquidContainerBase.PerishableInfoCompact(api, itemSlot, 0f, withStackName: false);
-                    blockEntityTub.GetBlockInfo(forPlayer,StringBuilder);
-                    text += StringBuilder.ToString();
-                }   
-            }
-
-            return text + text2;
+            return base.GetPlacedBlockInfo(world, pos, forPlayer);
         }
 
         public override void TryFillFromBlock(EntityItem byEntityItem, BlockPos pos)
