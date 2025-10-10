@@ -1,16 +1,13 @@
-﻿using HarmonyLib;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
-using Vintagestory.API.Server;
 using Vintagestory.API.Util;
 using Vintagestory.GameContent;
 
@@ -19,32 +16,31 @@ namespace Mash_Tubs.src.Blocks
     internal class BlockEntityMashTub : BlockEntityLiquidContainer
     {
         private static SimpleParticleProperties liquidParticles;
-    
+
         public override InventoryBase Inventory => inventory;
         public override string InventoryClassName => Block?.Code.FirstCodePart();
         //"mashtub"
 
         private MeshData currentMesh;
         private ICoreClientAPI capi;
-        
+
         private BlockTubGeneric ownBlock;
         public ItemSlot MashSlot => inventory[0];
         public ItemSlot LiquidSlot => inventory[1];
         private TextureAtlasPosition juiceTexPos;
         private int dryStackSize;
         private ItemStack mashStack => MashSlot.Itemstack;
-        
+
         private double lastLiquidTransferTotalHours;
 
         private bool squeezeSoundPlayed;
-
 
         private long listenerId;
 
         private float percentageTubMashedPerStomp = 0.25f;
 
         public bool Mashing;//is the tub currently being mashed
-        private float MashingVolume;//volume of the container which is being mashed 0 - 1 
+        private float MashingVolume;//volume of the container which is being mashed 0 - 1
         private double tubSqueezeRel;//how much the tub is being squeezed 0-1
         private double mashPercent;//current mash tubSqueezeRel
         private double squeezedLitresLeft;//litres left to squeeze out of the mash
@@ -57,6 +53,7 @@ namespace Mash_Tubs.src.Blocks
 
         public int CapacityLitres { get; set; } = 10;
         public int CapacityItems { get; set; } = 64;
+
         private double juiceableLitresLeft
         {
             get
@@ -68,6 +65,7 @@ namespace Mash_Tubs.src.Blocks
                 mashStack.Attributes.SetDouble("juiceableLitresLeft", value / mashStack.StackSize);
             }
         }
+
         private double juiceableLitresTransfered
         {
             get
@@ -79,6 +77,7 @@ namespace Mash_Tubs.src.Blocks
                 mashStack.Attributes.SetDouble("juiceableLitresTransfered", value / mashStack.StackSize);
             }
         }
+
         static BlockEntityMashTub()
         {
             liquidParticles = new SimpleParticleProperties
@@ -103,6 +102,7 @@ namespace Mash_Tubs.src.Blocks
             inventory.SlotModified += Inventory_SlotModified;
             inventory.OnAcquireTransitionSpeed += Inventory_OnAcquireTransitionSpeed1;
         }
+
         private float GetSuitability(ItemSlot sourceSlot, ItemSlot targetSlot, bool isMerge)
         {
             if (targetSlot == inventory[1] && inventory[0].StackSize > 0)
@@ -117,11 +117,11 @@ namespace Mash_Tubs.src.Blocks
 
             return (isMerge ? (inventory.BaseWeight + 3f) : (inventory.BaseWeight + 1f)) + (float)((sourceSlot.Inventory is InventoryBasePlayer) ? 1 : 0);
         }
+
         private void Inventory_SlotModified(int slotId)
         {
             if (slotId == 0 || slotId == 1)
             {
-                
                 ICoreAPI api = Api;
                 if (api != null && api.Side == EnumAppSide.Client)
                 {
@@ -141,6 +141,7 @@ namespace Mash_Tubs.src.Blocks
 
             return mul;
         }
+
         public override void Initialize(ICoreAPI api)
         {
             base.Initialize(api);
@@ -151,7 +152,7 @@ namespace Mash_Tubs.src.Blocks
                 CapacityLitres = ownBlock.Attributes["capacityLitres"].AsInt(50);
                 (inventory[1] as ItemSlotLiquidOnly).CapacityLitres = CapacityLitres;
             }
-            
+
             if (api.Side == EnumAppSide.Client && currentMesh == null)
             {
                 currentMesh = GenMesh();
@@ -168,7 +169,7 @@ namespace Mash_Tubs.src.Blocks
 
         internal void OnEntityStomp(ICoreAPI api, Entity entity)
         {
-            if (api.Side == EnumAppSide.Client && currentMesh == null) 
+            if (api.Side == EnumAppSide.Client && currentMesh == null)
             {
                 squeezeSoundPlayed = false;
                 lastLiquidTransferTotalHours = Api.World.Calendar.TotalHours;
@@ -178,25 +179,55 @@ namespace Mash_Tubs.src.Blocks
                 }
             }
 
+            lastLiquidTransferTotalHours = Api.World.Calendar.TotalHours;
+            updateSqueezeRel(percentageTubMashedPerStomp);
+            Api.World.PlaySoundAt(new AssetLocation("sounds/player/wetclothsqueeze.ogg"), Pos, 0.0, null, randomizePitch: false);
 
-            if (api.Side == EnumAppSide.Server && !MashSlot.Empty)
+            JuiceableProperties juiceableProps = getJuiceableProps(mashStack);
+            double totalHours = Api.World.Calendar.TotalHours;
+            double num = mashStack.Attributes.GetDouble("squeezeRel", 1.0);
+            double amountToRemove = 0.0;
+            if (num > tubSqueezeRel && false)
             {
-                squeezeSoundPlayed = false;
-                lastLiquidTransferTotalHours = Api.World.Calendar.TotalHours;
-                updateSqueezeRel(percentageTubMashedPerStomp);
-                api.Logger.Event("serverside stomp");
-                if (listenerId == 0L)
-                {
-                    Mashing = true;
-                    listenerId = RegisterGameTickListener(onTick100msServer, 25);
-                }
-                if (MashSlot.Empty && listenerId != 0L)
-                {
-                    UnregisterGameTickListener(listenerId);
-                    listenerId = 0L;
-                }
+                num = GameMath.Clamp(Math.Min(mashStack.Attributes.GetDouble("squeezeRel", 1.0), num), 0.0, 1.0);
+                mashStack.Attributes.SetDouble("squeezeRel", num);
+                mashPercent = num;
             }
+            if (num < 1.0 && tubSqueezeRel <= num && juiceableLitresLeft > 0.0)
+            {
+                squeezedLitresLeft = Math.Max(Math.Max(0.0, squeezedLitresLeft), juiceableLitresLeft - (juiceableLitresLeft + juiceableLitresTransfered) * mashPercent);
+                amountToRemove = Math.Min(squeezedLitresLeft, Math.Round((totalHours - lastLiquidTransferTotalHours) * GameMath.Clamp(squeezedLitresLeft * (1.0 - num) * 500.0, 25.0, 100.0), 2));
+            }
+
+            if (juiceableProps != null && squeezedLitresLeft > 0.0)
+            {
+                ItemStack resolvedItemstack = juiceableProps.LiquidStack.ResolvedItemstack;
+                resolvedItemstack.StackSize = 999999;
+                float num3;
+                if (ownBlock != null && !ownBlock.IsFull(LiquidSlot.Itemstack))
+                {
+                    float currentLitres = ownBlock.GetCurrentLitres(LiquidSlot.Itemstack);
+                    if (amountToRemove > 0.0)
+                    {
+                        ownBlock.TryPutLiquid(Pos, resolvedItemstack, (float)amountToRemove);
+                    }
+                    num3 = (float)amountToRemove - currentLitres;
+                }
+                else
+                {
+                    spillingOver = true;
+                    num3 = (float)amountToRemove;
+                }
+
+                juiceableLitresLeft -= num3;
+                squeezedLitresLeft -= ((tubSqueezeRel <= num) ? num3 : (num3 * 100f));
+                juiceableLitresTransfered += num3;
+                lastLiquidTransferTotalHours = totalHours;
+                MarkDirty(redrawOnClient: true);
+            }
+            MarkDirty(redrawOnClient: true);
         }
+
         private void onTick25msClient(float dt)
         {
             double num = mashStack?.Attributes.GetDouble("squeezeRel", 1.0) ?? 1.0;
@@ -231,7 +262,7 @@ namespace Mash_Tubs.src.Blocks
                 liquidParticles.AddPos.Set(0.25, 0.0, 0.25);
                 for (int j = 0; j < 3; j++)
                 {
-                  //  liquidParticles.Color = capi.BlockTextureAtlas.GetRandomColor(renderer.juiceTexPos, rand.Next(30));
+                    //  liquidParticles.Color = capi.BlockTextureAtlas.GetRandomColor(renderer.juiceTexPos, rand.Next(30));
                     Api.World.SpawnParticles(liquidParticles);
                 }
             }
@@ -239,99 +270,13 @@ namespace Mash_Tubs.src.Blocks
 
         private void onTick100msServer(float dt)
         {
-            //if serverlistener was active when tub was unloaded
-            if (serverListenerActive)
-            {
-                updateSqueezeRel(0);
-                serverListenerActive = false;
-                return;
-            }
-            //if mashslot is empty return
-            if (MashSlot.Empty)
-            {
-                return;
-            }
-            JuiceableProperties juiceableProps = getJuiceableProps(mashStack);
-            double totalHours = Api.World.Calendar.TotalHours;
-            double num = mashStack.Attributes.GetDouble("squeezeRel", 1.0);
-            double amountToRemove = 0.0;
-            if (num > tubSqueezeRel && false)
-            {
-
-                num = GameMath.Clamp(Math.Min(mashStack.Attributes.GetDouble("squeezeRel", 1.0), num), 0.0, 1.0);
-                mashStack.Attributes.SetDouble("squeezeRel", num);
-                mashPercent = num;
-                //MashingVolume /
-
-            }
-            if (Api.Side == EnumAppSide.Server && Mashing && num < 1.0 && tubSqueezeRel <= num && juiceableLitresLeft > 0.0)
-            {
-                
-                    /*
-                    Mashing;//is the tub currently being mashed
-                    MashingVolume;//volume of mash being mashed
-                    tubSqueezeRel;//how much the tub is being squeezed 0-1
-                    mashPercent;//current mash tubSqueezeRel
-                    squeezedLitresLeft;//litres left to squeeze out of the mash
-                    */
-                    squeezedLitresLeft = Math.Max(Math.Max(0.0, squeezedLitresLeft), juiceableLitresLeft - (juiceableLitresLeft + juiceableLitresTransfered)  * mashPercent);
-                    amountToRemove = Math.Min(squeezedLitresLeft, Math.Round((totalHours - lastLiquidTransferTotalHours) * GameMath.Clamp(squeezedLitresLeft * (1.0 - num) * 500.0, 25.0, 100.0), 2));
-
-                    if (!squeezeSoundPlayed)
-                    {
-                        Api.World.PlaySoundAt(new AssetLocation("sounds/player/wetclothsqueeze.ogg"), Pos, 0.0, null, randomizePitch: false);
-                        squeezeSoundPlayed = true;
-                    }
-            }
-            
-            if (Api.Side == EnumAppSide.Server)
-            {
-
-                //apply crushing values to liquid and item stacks
-                if (juiceableProps != null && squeezedLitresLeft > 0.0)
-                {
-
-                    ItemStack resolvedItemstack = juiceableProps.LiquidStack.ResolvedItemstack;
-                    resolvedItemstack.StackSize = 999999;
-                    float num3;
-                    if (ownBlock != null && !ownBlock.IsFull(LiquidSlot.Itemstack))
-                    {
-                        float currentLitres = ownBlock.GetCurrentLitres(LiquidSlot.Itemstack);
-                        if (amountToRemove > 0.0)
-                        {
-                            ownBlock.TryPutLiquid(Pos, resolvedItemstack, (float)amountToRemove);
-                        }
-                        num3 = (float)amountToRemove - currentLitres;
-                    }
-                    else
-                    {
-                        spillingOver = true;
-                        num3 = (float)amountToRemove;
-                    }
-
-                    juiceableLitresLeft -= num3;
-                    squeezedLitresLeft -= ((tubSqueezeRel <= num) ? num3 : (num3 * 100f));
-                    juiceableLitresTransfered += num3;
-                    lastLiquidTransferTotalHours = totalHours;
-                    MarkDirty(redrawOnClient: true);
-                }
-
-                else if (!Mashing || juiceableLitresLeft <= 0.0)
-                {
-                    spillingOver = false;
-                    Mashing = false;
-                    UnregisterGameTickListener(listenerId);
-                    listenerId = 0L;
-                    MarkDirty(redrawOnClient: true);
-                }
-            }
         }
 
         private void updateSqueezeRel(float tubCrushValue)
         {
             if (tubCrushValue != null && mashStack != null)
             {
-                var num = Math.Clamp((tubSqueezeRel <= 0 ? 1.0 : tubSqueezeRel) - tubCrushValue,0.0,1.0);
+                var num = Math.Clamp((tubSqueezeRel <= 0 ? 1.0 : tubSqueezeRel) - tubCrushValue, 0.0, 1.0);
                 MashingVolume = (float)(juiceableLitresLeft + juiceableLitresTransfered) / CapacityLitres;
                 tubSqueezeRel = num;
                 Api.Logger.Event("new tubSqueezeRel :" + tubSqueezeRel);
@@ -360,9 +305,9 @@ namespace Mash_Tubs.src.Blocks
                 {
                     return false;
                 }
-                if (!juiceableProps.LitresPerItem.HasValue && !itemstack.Attributes.HasAttribute("juiceableLitresLeft")) 
+                if (!juiceableProps.LitresPerItem.HasValue && !itemstack.Attributes.HasAttribute("juiceableLitresLeft"))
                 {
-                        return false;
+                    return false;
                 }
                 ItemStack mashTypeStack = (juiceableProps.LitresPerItem.HasValue ? juiceableProps.PressedStack.ResolvedItemstack.Clone() : itemstack.GetEmptyClone());
                 if (!LiquidSlot.Empty)
@@ -370,7 +315,6 @@ namespace Mash_Tubs.src.Blocks
                     (Api as ICoreClientAPI)?.TriggerIngameError(this, "tubnotempty", Lang.Get("Cannot Add mash to partially filled tub. Remove liquids first."));
                     return false;
                 }
-
 
                 if (MashSlot.Empty)
                 {
@@ -383,7 +327,7 @@ namespace Mash_Tubs.src.Blocks
                         MashingVolume = (float)(juiceableLitresLeft + juiceableLitresTransfered) / CapacityLitres;
                         activeHotbarSlot.TakeOut(1);
                         MarkDirty(redrawOnClient: true);
-                  
+
                         (byPlayer as IClientPlayer)?.TriggerFpAnimation(EnumHandInteract.HeldItemInteract);
                         return true;
                     }
@@ -400,7 +344,7 @@ namespace Mash_Tubs.src.Blocks
                 }
                 float heldLitersLeft = (float)itemstack.Attributes.GetDecimal("juiceableLitresLeft");
                 float heldLitersTransfered = (float)itemstack.Attributes.GetDecimal("juiceableLitresTransfered");
-                
+
                 bool heldStackIsMash = !juiceableProps.LitresPerItem.HasValue;
 
                 int inputStackSize = Math.Min(itemstack.StackSize, byPlayer.Entity.Controls.ShiftKey ? 1 : (byPlayer.Entity.Controls.CtrlKey ? itemstack.Item.MaxStackSize : 4));
@@ -438,7 +382,6 @@ namespace Mash_Tubs.src.Blocks
                             mashStack.Collectible.SetTransitionState(mashStack, transitionState2.Props.Type, transitionState2.TransitionedHours * num3 + transitionState3.TransitionedHours * (1f - num3));
                         }
                     }
-                    
                 }
 
                 heldLitersLeft = (float)inputStackSize * itemLiters;
@@ -457,24 +400,24 @@ namespace Mash_Tubs.src.Blocks
 
                     //mashStack.Attributes.SetDouble("juiceableLitresTransfered", (juiceableLitresTransfered += heldLitersTransfered)/newStackSize);
 
-
                     dryStackSize = GameMath.RoundRandom(Api.World.Rand, ((float)juiceableLitresLeft + (float)juiceableLitresTransfered) * getJuiceableProps(mashStack).PressedDryRatio);
                     activeHotbarSlot.MarkDirty();
                     MarkDirty(redrawOnClient: true);
-                    
+
                     (byPlayer as IClientPlayer)?.TriggerFpAnimation(EnumHandInteract.HeldItemInteract);
                 }
                 return true;
             }
 
-            if (MashSlot.Empty ||mashStack == null)
+            if (MashSlot.Empty || mashStack == null)
             {
                 return false;
             }
 
             convertDryMash();
 
-            if (!LiquidSlot.Empty && !getJuiceableProps(mashStack).LitresPerItem.HasValue) {
+            if (!LiquidSlot.Empty && !getJuiceableProps(mashStack).LitresPerItem.HasValue)
+            {
                 (Api as ICoreClientAPI)?.TriggerIngameError(this, "fullcontainer", Lang.Get("Tub is still full, drain the tub before removing items"));
                 return false;
             }
@@ -486,7 +429,7 @@ namespace Mash_Tubs.src.Blocks
 
             Api.World.Logger.Audit("{0} Took 1x{1} from Fruitpress at {2}.", byPlayer.PlayerName, mashStack.Collectible.Code);
             MashSlot.Itemstack = null;
-      //      renderer?.reloadMeshes(null, mustReload: true);
+            //      renderer?.reloadMeshes(null, mustReload: true);
             if (Api.Side == EnumAppSide.Server)
             {
                 MarkDirty(redrawOnClient: true);
@@ -498,7 +441,8 @@ namespace Mash_Tubs.src.Blocks
         public bool HeldItemHasPropsOrEmpty(IPlayer byPlayer)
         {
             var activeHotbarSlot = byPlayer.InventoryManager.ActiveHotbarSlot;
-            if (activeHotbarSlot.Empty) {
+            if (activeHotbarSlot.Empty)
+            {
                 return true;
             }
             if (getJuiceableProps(activeHotbarSlot.Itemstack) != null)
@@ -507,6 +451,7 @@ namespace Mash_Tubs.src.Blocks
             }
             return false;
         }
+
         public JuiceableProperties getJuiceableProps(ItemStack stack)
         {
             JuiceableProperties obj = ((stack != null && (stack.ItemAttributes?["juiceableProperties"].Exists).GetValueOrDefault()) ? stack.ItemAttributes["juiceableProperties"].AsObject<JuiceableProperties>(null, stack.Collectible.Code.Domain) : null);
@@ -526,6 +471,7 @@ namespace Mash_Tubs.src.Blocks
 
             return obj;
         }
+
         private void convertDryMash()
         {
             if (!(juiceableLitresLeft < 0.01))
@@ -553,6 +499,7 @@ namespace Mash_Tubs.src.Blocks
 
             dryStackSize = 0;
         }
+
         internal MeshData GenMesh()
         {
             if (ownBlock == null)
@@ -591,6 +538,7 @@ namespace Mash_Tubs.src.Blocks
                 base.OnBlockBroken(byPlayer);
             }
         }
+
         public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldForResolving)
         {
             bool empty = Inventory.Empty;
@@ -634,15 +582,18 @@ namespace Mash_Tubs.src.Blocks
                 }
             }
         }
+
         public override void OnBlockUnloaded()
         {
             base.OnBlockUnloaded();
         }
+
         public override bool OnTesselation(ITerrainMeshPool mesher, ITesselatorAPI tesselator)
         {
             mesher.AddMeshData(currentMesh);
             return true;
         }
+
         public override void GetBlockInfo(IPlayer forPlayer, StringBuilder dsc)
         {
             base.GetBlockInfo(forPlayer, dsc);
@@ -655,7 +606,7 @@ namespace Mash_Tubs.src.Blocks
             if (juiceableLitresLeft >= 0.01 && mashStack.Collectible.Code.Path != "rot")
             {
                 string text = juiceableProps.LiquidStack.ResolvedItemstack.GetName().ToLowerInvariant();
-                dsc.AppendLine(Lang.Get("Mash produces {0:0.##} X {1} litres of {2} juice when squeezed", juiceableLitresLeft/mashStack.StackSize, mashStack.StackSize, text));
+                dsc.AppendLine(Lang.Get("Mash produces {0:0.##} X {1} litres of {2} juice when squeezed", juiceableLitresLeft / mashStack.StackSize, mashStack.StackSize, text));
                 return;
             }
 
@@ -702,6 +653,5 @@ namespace Mash_Tubs.src.Blocks
         dsc.AppendLine(Lang.Get("{0}x {1}", num, text2));
              */
         }
-
     }
 }
