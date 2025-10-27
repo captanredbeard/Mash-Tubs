@@ -57,7 +57,7 @@ namespace Mash_Tubs.src.Blocks
                 return selectionBoxes;
             }
             Block originaBlock = blockAccessor.GetBlock(pos.AddCopy(offset.X, offset.Y, offset.Z));
-            return this.GetSelectionBoxes(blockAccessor, pos);
+            return GetSelectionBoxes(blockAccessor, pos);
         }
 
         bool IMultiBlockCollisions.MBCanAcceptFallOnto(IWorldAccessor world, BlockPos pos, Block fallingBlock, TreeAttribute blockEntityAttributes, Vec3i offsetInv)
